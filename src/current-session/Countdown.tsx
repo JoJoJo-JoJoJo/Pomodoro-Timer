@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Time } from "../types";
 
 interface TimerProps {
@@ -12,42 +12,47 @@ const Countdown = ({ timerLength, isPlaying, timerEnd }: TimerProps) => {
     minutes: Math.floor(timerLength / 60),
     seconds: timerLength % 60,
   });
-
   const { minutes, seconds } = time;
 
-  useEffect(() => {
-    const seconds = time.seconds - 1;
+  const timerStarted = (minutes * 60) + seconds !== timerLength;
 
-    if (time.minutes === 0 && seconds < 0) {
+  const setNewTimer = useCallback(() => {
+    setTime({
+      minutes: Math.floor(timerLength / 60),
+      seconds: timerLength % 60,
+    });
+  }, [timerLength]);
+
+  const shouldEnd = useCallback(() => {
+    if (minutes === 0 && seconds < 1) {
       timerEnd();
+      setNewTimer();
     }
+  }, [minutes, seconds, timerEnd, setNewTimer]);
 
-    const countdown = setTimeout(() => {
-      if (isPlaying) {
+  useEffect(() => {
+    if (isPlaying) {
+      shouldEnd();
+      const countdown = setTimeout(() => {
         setTime({
-          seconds: seconds < 0 ? 59 : seconds,
-          minutes: time.seconds - 1 < 0 ? time.minutes - 1 : time.minutes,
+          seconds: seconds - 1 < 0 ? 59 : seconds - 1,
+          minutes: seconds - 1 < 0 ? minutes - 1 : minutes,
         });
-      }
-    }, 1000);
+      }, 1000);
 
-    return () => {
-      clearTimeout(countdown);
-    };
-  }, [time, isPlaying, timerEnd]);
-
-  /**
-   * * After every re-render of the component, the useEffect hook:
-   * * -> First, runs the cleanup code with the old props and state.
-   * * -> Then, runs the setup code with the new props and state.
-   * ? The cleanup code is also run one last time after the component unmounts.
-   */
+      return () => {
+        clearTimeout(countdown);
+      };
+    } else if (!timerStarted) {
+      setNewTimer();
+    }
+  }, [isPlaying, shouldEnd, setNewTimer, seconds, minutes, timerStarted]);
 
   return (
     <p id="time-left" className="text-center text-white text-8xl">
-      {`${minutes.toString().padStart(2, "0")}:${seconds
+      {`${minutes.toString().padStart(2, "00")}:${seconds
         .toString()
-        .padStart(2, "0")}`}
+        .padStart(2, "00")}`}
     </p>
   );
 };

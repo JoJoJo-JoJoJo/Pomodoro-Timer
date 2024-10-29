@@ -1,7 +1,7 @@
 import { BtnGProps, BtnProps } from "../types";
 
 const Btn = ({ text, id, onClick }: BtnGProps) => (
-  <button className="btn py-2 px-8" onClick={() => onClick} id={id}>
+  <button className="btn py-2 px-8" onClick={onClick} id={id}>
     {text}
   </button>
 );

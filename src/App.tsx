@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ElementRef, useCallback, useRef, useState } from "react";
 import Session from "./current-session/Session.tsx";
 import BreakLength from "./time-setters/BreakLength.tsx";
 import { Btn, DecrementBtn, IncrementBtn } from "./components/Buttons.tsx";
@@ -12,11 +12,12 @@ const initCount: Count = {
   session: 25,
 };
 
-function App() {
+const App = () => {
   const [count, setCount] = useState<Count>(initCount);
   const [activeTimer, setActiveTimer] = useState<btnType>("session");
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [hasAudio, setHasAudio] = useState<boolean>(true);
+
+  const audioRef = useRef<null | ElementRef<"audio">>(null);
 
   const handleCountClick = ({ action, name }: ArrowBtn) => {
     if (action !== "increment" && action !== "decrement") {
@@ -57,11 +58,13 @@ function App() {
     }
   };
 
-  const timerEnd = () => {
+  const timerEnd = useCallback(() => {
     setIsPlaying(false);
+    //! Audio only plays after session timer finishes
+    audioRef.current?.play();
     setActiveTimer((prev) => (prev === "session" ? "break" : "session"));
-    setHasAudio((prev) => !prev);
-  };
+    setIsPlaying(true);
+  }, []);
 
   const playPause = () => {
     setIsPlaying((prev) => !prev);
@@ -69,10 +72,7 @@ function App() {
 
   const reset = () => {
     setIsPlaying(false);
-    setCount({
-      break: initCount.break,
-      session: initCount.session,
-    });
+    setCount(initCount);
     setActiveTimer("session");
   };
 
@@ -83,17 +83,16 @@ function App() {
           <h1 className="text-5xl text-green-100 text-center py-10 md:overline">
             Pomodoro Timer
           </h1>
-          {hasAudio && (
-            <audio
-              autoPlay
-              id="beep"
-              src="/src/assets/ding-101492.mp3"
-              typeof="audio/mpeg"
-              className="text-white"
-            >
-              Your browser does not support this audio element.
-            </audio>
-          )}
+          <audio
+            ref={audioRef}
+            autoPlay
+            id="beep"
+            src="/src/assets/ding-101492.mp3"
+            typeof="audio/mpeg"
+            className="text-white"
+          >
+            Your browser does not support this audio element.
+          </audio>
         </div>
         <Session activeTimer={activeTimer}>
           <Countdown
@@ -124,6 +123,6 @@ function App() {
       </footer>
     </div>
   );
-}
+};
 
 export default App;
