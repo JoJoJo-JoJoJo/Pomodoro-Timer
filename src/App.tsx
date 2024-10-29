@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import Session from "./Session.tsx";
+import { useState } from "react";
+import Session from "./current-session/Session.tsx";
 import BreakLength from "./time-setters/BreakLength.tsx";
 import { Btn, DecrementBtn, IncrementBtn } from "./components/Buttons.tsx";
 import SessionLength from "./time-setters/SessionLength.tsx";
 import { ArrowBtn, btnType, Count } from "./types.ts";
 import { Pause, Play, Reset } from "./components/faIcons.tsx";
-import useCountdown from "./hooks/useCountdown.ts";
+import Countdown from "./current-session/Countdown.tsx";
 
 const initCount: Count = {
   break: 5,
@@ -18,27 +18,16 @@ function App() {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [hasAudio, setHasAudio] = useState<boolean>(true);
 
-  const time = useCountdown(count[activeTimer] * 60, isPlaying);
-
-  useEffect(() => {
-    if (time.minutes === 0 && time.seconds - 1 < 0) {
-      setIsPlaying(false);
-      setActiveTimer((prev) => (prev === "session" ? "break" : "session"));
-      setHasAudio((prev) => !prev);
-    }
-  }, [time, isPlaying]);
-
-  const handleClick = ({ action, name }: ArrowBtn) => {
+  const handleCountClick = ({ action, name }: ArrowBtn) => {
     if (action !== "increment" && action !== "decrement") {
       throw new ReferenceError("Invalid action input");
     } else if (name !== "break" && name !== "session") {
       throw new ReferenceError("Invalid name input");
     }
 
-    if (count[name] - 1 < 0 || count[name] + 1 > 60) return;
-
     switch (action) {
       case "increment":
+        if (count[name] + 1 > 60) return;
         if (name === "break") {
           setCount({
             break: ++count.break,
@@ -52,6 +41,7 @@ function App() {
         }
         break;
       case "decrement":
+        if (count[name] - 1 <= 0) return;
         if (name === "break") {
           setCount({
             break: --count.break,
@@ -65,6 +55,12 @@ function App() {
         }
         break;
     }
+  };
+
+  const timerEnd = () => {
+    setIsPlaying(false);
+    setActiveTimer((prev) => (prev === "session" ? "break" : "session"));
+    setHasAudio((prev) => !prev);
   };
 
   const playPause = () => {
@@ -99,7 +95,12 @@ function App() {
             </audio>
           )}
         </div>
-        <Session time={time} activeTimer={activeTimer}>
+        <Session activeTimer={activeTimer}>
+          <Countdown
+            timerLength={count[activeTimer] * 60}
+            isPlaying={isPlaying}
+            timerEnd={timerEnd}
+          />
           <Btn
             text={isPlaying ? <Pause /> : <Play />}
             id="start_stop"
@@ -109,12 +110,12 @@ function App() {
         </Session>
         <div className="flex flex-row items-center justify-evenly w-full mb-[5%]">
           <BreakLength count={count}>
-            <DecrementBtn btnType="break" handleClick={handleClick} />
-            <IncrementBtn btnType="break" handleClick={handleClick} />
+            <DecrementBtn btnType="break" handleClick={handleCountClick} />
+            <IncrementBtn btnType="break" handleClick={handleCountClick} />
           </BreakLength>
           <SessionLength count={count}>
-            <DecrementBtn btnType="session" handleClick={handleClick} />
-            <IncrementBtn btnType="session" handleClick={handleClick} />
+            <DecrementBtn btnType="session" handleClick={handleCountClick} />
+            <IncrementBtn btnType="session" handleClick={handleCountClick} />
           </SessionLength>
         </div>
       </main>

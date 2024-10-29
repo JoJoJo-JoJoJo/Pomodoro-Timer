@@ -24,7 +24,7 @@ const useCountdown = (length: number, isPlaying: boolean) => {
     }
   }, [time, isPlaying]);
 
-  return time
+  return { time }
 }
 
 export default useCountdown
