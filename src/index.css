@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+@layer components {
+  .btn {
+    @apply bg-green-800 rounded-md hover:bg-green-600 transition-colors ease-linear duration-200
+  }
+}
