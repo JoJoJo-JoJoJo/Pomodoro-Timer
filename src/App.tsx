@@ -1,4 +1,4 @@
-import { ElementRef, useCallback, useRef, useState } from "react";
+import { ElementRef, useCallback, useEffect, useRef, useState } from "react";
 import Session from "./current-session/Session.tsx";
 import BreakLength from "./time-setters/BreakLength.tsx";
 import { Btn, DecrementBtn, IncrementBtn } from "./components/Buttons.tsx";
@@ -6,6 +6,8 @@ import SessionLength from "./time-setters/SessionLength.tsx";
 import { ArrowBtn, btnType, Count } from "./types.ts";
 import { Pause, Play, Reset } from "./components/faIcons.tsx";
 import Countdown from "./current-session/Countdown.tsx";
+
+// TODO: Add lofi music to the background when the timer is running.
 
 const initCount: Count = {
   break: 5,
@@ -16,8 +18,13 @@ const App = () => {
   const [count, setCount] = useState<Count>(initCount);
   const [activeTimer, setActiveTimer] = useState<btnType>("session");
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [timerLength, setTimerLength] = useState<number>(25 * 60);
 
   const audioRef = useRef<null | ElementRef<"audio">>(null);
+
+  useEffect(() => {
+    setTimerLength(count[activeTimer] * 60);
+  }, [count, activeTimer])
 
   const handleCountClick = ({ action, name }: ArrowBtn) => {
     if (action !== "increment" && action !== "decrement") {
@@ -31,12 +38,12 @@ const App = () => {
         if (count[name] + 1 > 60) return;
         if (name === "break") {
           setCount({
+            ...count,
             break: ++count.break,
-            session: count.session,
           });
         } else {
           setCount({
-            break: count.break,
+            ...count,
             session: ++count.session,
           });
         }
@@ -45,12 +52,12 @@ const App = () => {
         if (count[name] - 1 <= 0) return;
         if (name === "break") {
           setCount({
+            ...count,
             break: --count.break,
-            session: count.session,
           });
         } else {
           setCount({
-            break: count.break,
+            ...count,
             session: --count.session,
           });
         }
@@ -60,8 +67,11 @@ const App = () => {
 
   const timerEnd = useCallback(() => {
     setIsPlaying(false);
-    //! Audio only plays after session timer finishes
     audioRef.current?.play();
+    setTimeout(() => {
+      audioRef.current?.pause();
+      audioRef.current?.load();
+    }, 1000);
     setActiveTimer((prev) => (prev === "session" ? "break" : "session"));
     setIsPlaying(true);
   }, []);
@@ -72,8 +82,14 @@ const App = () => {
 
   const reset = () => {
     setIsPlaying(false);
-    setCount(initCount);
+    setCount({
+      break: 5,
+      session: 25,
+    });
     setActiveTimer("session");
+    setTimerLength(25 * 60);
+    audioRef.current?.load();
+    audioRef.current?.pause();
   };
 
   return (
@@ -96,7 +112,7 @@ const App = () => {
         </div>
         <Session activeTimer={activeTimer}>
           <Countdown
-            timerLength={count[activeTimer] * 60}
+            timerLength={timerLength}
             isPlaying={isPlaying}
             timerEnd={timerEnd}
           />

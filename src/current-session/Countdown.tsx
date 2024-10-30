@@ -7,6 +7,11 @@ interface TimerProps {
   timerEnd: () => void;
 }
 
+/**
+ * ! Timer has not reached 00:00.
+ * ! Timer paused but countdown continued - expected '00' to equal '59'.
+ */
+
 const Countdown = ({ timerLength, isPlaying, timerEnd }: TimerProps) => {
   const [time, setTime] = useState<Time>({
     minutes: Math.floor(timerLength / 60),
@@ -14,24 +19,29 @@ const Countdown = ({ timerLength, isPlaying, timerEnd }: TimerProps) => {
   });
   const { minutes, seconds } = time;
 
-  const timerStarted = (minutes * 60) + seconds !== timerLength;
+  const [timerStarted, setTimerStarted] = useState(false);
 
-  const setNewTimer = useCallback(() => {
+
+
+  const setNewTimer = useCallback((): void => {
     setTime({
       minutes: Math.floor(timerLength / 60),
       seconds: timerLength % 60,
     });
   }, [timerLength]);
 
-  const shouldEnd = useCallback(() => {
+  const shouldEnd = useCallback((): void => {
     if (minutes === 0 && seconds < 1) {
       timerEnd();
       setNewTimer();
     }
   }, [minutes, seconds, timerEnd, setNewTimer]);
 
+
+
   useEffect(() => {
     if (isPlaying) {
+      setTimerStarted(true)
       shouldEnd();
       const countdown = setTimeout(() => {
         setTime({
@@ -43,10 +53,15 @@ const Countdown = ({ timerLength, isPlaying, timerEnd }: TimerProps) => {
       return () => {
         clearTimeout(countdown);
       };
-    } else if (!timerStarted) {
+    } else if (
+      !timerStarted ||
+      (!isPlaying && timerStarted && timerLength === 25 * 60)
+    ) {
       setNewTimer();
     }
-  }, [isPlaying, shouldEnd, setNewTimer, seconds, minutes, timerStarted]);
+  }, [isPlaying, shouldEnd, setNewTimer, seconds, minutes, timerStarted, timerLength]);
+
+
 
   return (
     <p id="time-left" className="text-center text-white text-8xl">
