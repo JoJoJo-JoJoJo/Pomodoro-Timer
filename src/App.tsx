@@ -7,24 +7,40 @@ import { ArrowBtn, btnType, Count } from "./types.ts";
 import { Pause, Play, Reset } from "./components/faIcons.tsx";
 import Countdown from "./current-session/Countdown.tsx";
 
-// TODO: Add lofi music to the background when the timer is running.
-
 const initCount: Count = {
   break: 5,
   session: 25,
 };
 
+/**
+ * ! Test 24:
+ * ? -> When session timer finishes, should start counting down from the break timer.
+ * ! Test 27:
+ * ? -> Audio beep not playing when timer hits 0.
+ */
+
+
 const App = () => {
   const [count, setCount] = useState<Count>(initCount);
   const [activeTimer, setActiveTimer] = useState<btnType>("session");
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [resetCalled, setResetCalled] = useState<boolean>(false);
   const [timerLength, setTimerLength] = useState<number>(25 * 60);
 
-  const audioRef = useRef<null | ElementRef<"audio">>(null);
+  const audioBeepRef = useRef<null | ElementRef<"audio">>(null);
+  const audioLofiRef = useRef<null | ElementRef<"audio">>(null);
+
+  useEffect(() => {
+    if (isPlaying) {
+      audioLofiRef.current?.play();
+    } else {
+      audioLofiRef.current?.pause();
+    }
+  }, [isPlaying]);
 
   useEffect(() => {
     setTimerLength(count[activeTimer] * 60);
-  }, [count, activeTimer])
+  }, [count, activeTimer]);
 
   const handleCountClick = ({ action, name }: ArrowBtn) => {
     if (action !== "increment" && action !== "decrement") {
@@ -67,13 +83,12 @@ const App = () => {
 
   const timerEnd = useCallback(() => {
     setIsPlaying(false);
-    audioRef.current?.play();
-    setTimeout(() => {
-      audioRef.current?.pause();
-      audioRef.current?.load();
-    }, 1000);
+    audioBeepRef.current?.play();
     setActiveTimer((prev) => (prev === "session" ? "break" : "session"));
-    setIsPlaying(true);
+    setTimeout(() => {
+      audioBeepRef.current?.pause();
+      setIsPlaying(true);
+    }, 1100);
   }, []);
 
   const playPause = () => {
@@ -81,6 +96,10 @@ const App = () => {
   };
 
   const reset = () => {
+    setResetCalled((prev) => !prev);
+    setTimeout(() => {
+      setResetCalled((prev) => !prev);
+    }, 100);
     setIsPlaying(false);
     setCount({
       break: 5,
@@ -88,8 +107,10 @@ const App = () => {
     });
     setActiveTimer("session");
     setTimerLength(25 * 60);
-    audioRef.current?.load();
-    audioRef.current?.pause();
+    audioBeepRef.current?.load();
+    audioBeepRef.current?.pause();
+    audioLofiRef.current?.load();
+    audioLofiRef.current?.pause();
   };
 
   return (
@@ -100,12 +121,11 @@ const App = () => {
             Pomodoro Timer
           </h1>
           <audio
-            ref={audioRef}
-            autoPlay
+            ref={audioBeepRef}
             id="beep"
             src="/src/assets/ding-101492.mp3"
             typeof="audio/mpeg"
-            className="text-white"
+            className="text-white hidden"
           >
             Your browser does not support this audio element.
           </audio>
@@ -114,6 +134,7 @@ const App = () => {
           <Countdown
             timerLength={timerLength}
             isPlaying={isPlaying}
+            resetCalled={resetCalled}
             timerEnd={timerEnd}
           />
           <Btn
@@ -134,6 +155,18 @@ const App = () => {
           </SessionLength>
         </div>
       </main>
+
+      <audio
+        ref={audioLofiRef}
+        loop
+        id="lofi"
+        src="src\assets\lofi-study-calm-peaceful-chill-hop-112191.mp3"
+        typeof="audio/mpeg"
+        className="text-white hidden"
+      >
+        Your browser does not support this audio element.
+      </audio>
+
       <footer className="absolute bottom-0 w-full h-6 bg-green-950 text-center text-green-200 text-sm">
         Icon made by '@andinur' from 'www.flaticon.com'.
       </footer>

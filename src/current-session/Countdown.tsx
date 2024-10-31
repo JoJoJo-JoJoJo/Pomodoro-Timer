@@ -4,15 +4,16 @@ import { Time } from "../types";
 interface TimerProps {
   timerLength: number;
   isPlaying: boolean;
+  resetCalled: boolean;
   timerEnd: () => void;
 }
 
-/**
- * ! Timer has not reached 00:00.
- * ! Timer paused but countdown continued - expected '00' to equal '59'.
- */
-
-const Countdown = ({ timerLength, isPlaying, timerEnd }: TimerProps) => {
+const Countdown = ({
+  timerLength,
+  isPlaying,
+  resetCalled,
+  timerEnd,
+}: TimerProps) => {
   const [time, setTime] = useState<Time>({
     minutes: Math.floor(timerLength / 60),
     seconds: timerLength % 60,
@@ -20,8 +21,6 @@ const Countdown = ({ timerLength, isPlaying, timerEnd }: TimerProps) => {
   const { minutes, seconds } = time;
 
   const [timerStarted, setTimerStarted] = useState(false);
-
-
 
   const setNewTimer = useCallback((): void => {
     setTime({
@@ -31,37 +30,52 @@ const Countdown = ({ timerLength, isPlaying, timerEnd }: TimerProps) => {
   }, [timerLength]);
 
   const shouldEnd = useCallback((): void => {
-    if (minutes === 0 && seconds < 1) {
+    if (minutes === 0 && seconds === 0) {
       timerEnd();
-      setNewTimer();
+      setTimeout(() => {
+        setNewTimer();
+      }, 100);
     }
   }, [minutes, seconds, timerEnd, setNewTimer]);
 
-
-
   useEffect(() => {
     if (isPlaying) {
-      setTimerStarted(true)
+      // If timer is running:
+      if (!timerStarted) setTimerStarted(true);
       shouldEnd();
       const countdown = setTimeout(() => {
         setTime({
-          seconds: seconds - 1 < 0 ? 59 : seconds - 1,
-          minutes: seconds - 1 < 0 ? minutes - 1 : minutes,
+          seconds: seconds === 0 ? 59 : seconds - 1,
+          minutes: seconds === 0 ? minutes - 1 : minutes,
         });
       }, 1000);
 
       return () => {
         clearTimeout(countdown);
       };
-    } else if (
-      !timerStarted ||
-      (!isPlaying && timerStarted && timerLength === 25 * 60)
-    ) {
+    } else if (!timerStarted) {
+      // On first load || Just been reset:
       setNewTimer();
+    } else if (
+      !isPlaying &&
+      timerStarted &&
+      timerLength === 25 * 60 &&
+      resetCalled
+    ) {
+      // If timer needs to reset:
+      setNewTimer();
+      setTimerStarted(false);
     }
-  }, [isPlaying, shouldEnd, setNewTimer, seconds, minutes, timerStarted, timerLength]);
-
-
+  }, [
+    isPlaying,
+    shouldEnd,
+    setNewTimer,
+    seconds,
+    minutes,
+    timerStarted,
+    timerLength,
+    resetCalled,
+  ]);
 
   return (
     <p id="time-left" className="text-center text-white text-8xl">
