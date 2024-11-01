@@ -12,13 +12,6 @@ const initCount: Count = {
   session: 25,
 };
 
-/**
- * ! Test 24:
- * ? -> When session timer finishes, should start counting down from the break timer.
- * ! Test 27:
- * ? -> Audio beep not playing when timer hits 0.
- */
-
 
 const App = () => {
   const [count, setCount] = useState<Count>(initCount);
@@ -30,6 +23,9 @@ const App = () => {
   const audioBeepRef = useRef<null | ElementRef<"audio">>(null);
   const audioLofiRef = useRef<null | ElementRef<"audio">>(null);
 
+  if (audioLofiRef.current) audioLofiRef.current.volume = 0.2;
+  if (audioBeepRef.current) audioBeepRef.current.volume = 0.3;
+
   useEffect(() => {
     if (isPlaying) {
       audioLofiRef.current?.play();
@@ -39,8 +35,14 @@ const App = () => {
   }, [isPlaying]);
 
   useEffect(() => {
-    setTimerLength(count[activeTimer] * 60);
-  }, [count, activeTimer]);
+    if (activeTimer === "break") {
+      setTimerLength(count.break * 60);
+    }
+
+    if (activeTimer === "session") {
+      setTimerLength(count.session * 60);
+    }
+  }, [count, activeTimer, timerLength]);
 
   const handleCountClick = ({ action, name }: ArrowBtn) => {
     if (action !== "increment" && action !== "decrement") {
@@ -82,18 +84,17 @@ const App = () => {
   };
 
   const timerEnd = useCallback(() => {
-    setIsPlaying(false);
     audioBeepRef.current?.play();
-    setActiveTimer((prev) => (prev === "session" ? "break" : "session"));
+    setIsPlaying(false);
+    if (activeTimer === "session") {
+      setActiveTimer("break");
+    } else if (activeTimer === "break") {
+      setActiveTimer("session");
+    }
     setTimeout(() => {
-      audioBeepRef.current?.pause();
       setIsPlaying(true);
-    }, 1100);
-  }, []);
-
-  const playPause = () => {
-    setIsPlaying((prev) => !prev);
-  };
+    }, 110);
+  }, [activeTimer]);
 
   const reset = () => {
     setResetCalled((prev) => !prev);
@@ -132,6 +133,8 @@ const App = () => {
         </div>
         <Session activeTimer={activeTimer}>
           <Countdown
+            count={count}
+            activeTimer={activeTimer}
             timerLength={timerLength}
             isPlaying={isPlaying}
             resetCalled={resetCalled}
@@ -140,7 +143,7 @@ const App = () => {
           <Btn
             text={isPlaying ? <Pause /> : <Play />}
             id="start_stop"
-            onClick={playPause}
+            onClick={() => setIsPlaying((prev) => !prev)}
           />
           <Btn text={<Reset />} id="reset" onClick={reset} />
         </Session>
@@ -168,7 +171,8 @@ const App = () => {
       </audio>
 
       <footer className="absolute bottom-0 w-full h-6 bg-green-950 text-center text-green-200 text-sm">
-        Icon made by '@andinur' from 'www.flaticon.com'.
+        --Icon made by '@andinur' from 'www.flaticon.com'... --Music by
+        '@FASSounds' from 'www.pixabay.com'...
       </footer>
     </div>
   );

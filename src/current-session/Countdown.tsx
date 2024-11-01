@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Time } from "../types";
+import { Count, Time } from "../types";
 
 interface TimerProps {
+  count: Count;
+  activeTimer: string;
   timerLength: number;
   isPlaying: boolean;
   resetCalled: boolean;
@@ -9,6 +11,8 @@ interface TimerProps {
 }
 
 const Countdown = ({
+  count,
+  activeTimer,
   timerLength,
   isPlaying,
   resetCalled,
@@ -22,21 +26,34 @@ const Countdown = ({
 
   const [timerStarted, setTimerStarted] = useState(false);
 
-  const setNewTimer = useCallback((): void => {
+  const setNewTimer = useCallback((time: number): void => {
     setTime({
-      minutes: Math.floor(timerLength / 60),
-      seconds: timerLength % 60,
+      minutes: Math.floor(time / 60),
+      seconds: time % 60,
     });
-  }, [timerLength]);
+  }, []);
 
+  // * ------------------------------------------------------------------------------------->
   const shouldEnd = useCallback((): void => {
-    if (minutes === 0 && seconds === 0) {
+    if (minutes === 0 && seconds === 0 && isPlaying) {
       timerEnd();
+      const newLength =
+        activeTimer === "session" ? count.break * 60 : count.session * 60;
       setTimeout(() => {
-        setNewTimer();
-      }, 100);
+        setNewTimer(newLength);
+      }, 1010);
     }
-  }, [minutes, seconds, timerEnd, setNewTimer]);
+  }, [
+    minutes,
+    seconds,
+    isPlaying,
+    timerEnd,
+    activeTimer,
+    count.session,
+    count.break,
+    setNewTimer,
+  ]);
+  // * ------------------------------------------------------------------------------------->
 
   useEffect(() => {
     if (isPlaying) {
@@ -53,17 +70,12 @@ const Countdown = ({
       return () => {
         clearTimeout(countdown);
       };
-    } else if (!timerStarted) {
-      // On first load || Just been reset:
-      setNewTimer();
-    } else if (
-      !isPlaying &&
-      timerStarted &&
-      timerLength === 25 * 60 &&
-      resetCalled
-    ) {
+    } else if (!isPlaying && !timerStarted) {
+      // (On first load || Just been reset) && Timer not started again yet:
+      setNewTimer(timerLength);
+    } else if (!isPlaying && timerStarted && resetCalled) {
       // If timer needs to reset:
-      setNewTimer();
+      setNewTimer(timerLength);
       setTimerStarted(false);
     }
   }, [
